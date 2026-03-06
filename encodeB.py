@@ -4,7 +4,9 @@ def encodeB(instruction,reg1,reg2,branch_offset):
     func3=instr_info["func3"]
     rs1=registers[reg1]
     rs2=registers[reg2]
-    imm=toBinary(branch_offset,13)
+    if branch_offset<0:
+        branch_offset=(1<<13)+branch_offset
+    imm=format(branch_offset,'013b')
     imm12=imm[0]
     imm10_5=imm[1:7]
     imm4_1=imm[7:11]
