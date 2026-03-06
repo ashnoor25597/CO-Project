@@ -1,8 +1,8 @@
 def check_range(value):
-    min=-(2**(12-1))
-    max=(2**(12-1))-1
+    minimum=-(2**(12-1))
+    maximum=(2**(12-1))-1
 
-    if min<=value<=max:
+    if minimum<=value<=maximum:
         return True
     else:
         return False
