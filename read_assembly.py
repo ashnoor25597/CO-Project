@@ -10,9 +10,3 @@ def read_file(filename):
             lines.append(line)
     
     return lines
-
-def main():
-    lines_1= read_file(sys.argv[1])
-    print(lines_1)
-
-main()
