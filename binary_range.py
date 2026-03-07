@@ -1,6 +1,6 @@
-def check_range(value):
-    minimum=-(2**(12-1))
-    maximum=(2**(12-1))-1
+def check_range(value, bits):
+    minimum=-(2**(bits-1))
+    maximum=(2**(bits-1))-1
 
     if minimum<=value<=maximum:
         return True
