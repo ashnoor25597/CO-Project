@@ -1,3 +1,4 @@
+#encode"I"
 def encodeI(inst_name,ops,line_no):
     info=instructions[inst_name]
     if inst_name=="lw":
@@ -5,7 +6,11 @@ def encodeI(inst_name,ops,line_no):
             raise Exception("line"+str(line_no)+":wrong operand count")
         rd_name=ops[0].strip()
         mem_op=ops[1].strip()
-        rd=reg_bits(rd_name,line_no)
+
+        if rd_name not in registers:
+            raise Exception("line"+str(line_no)+":invalid register")
+        rd=registers[rd_name]
+
         if "(" not in mem_op or ")" not in mem_op:
             raise Exception("line"+str(line_no)+":invalid memory format")
         left=mem_op[:mem_op.index("(")].strip()
@@ -15,7 +20,11 @@ def encodeI(inst_name,ops,line_no):
             imm=int(left,0)
         except:
             raise Exception("line"+str(line_no)+":invalid immediate")
-        rs1=reg_bits(inside,line_no)
+
+        if inside not in registers:
+            raise Exception("line"+str(line_no)+":invalid register")
+        rs1=registers[inside]
+
         if not check_range(imm,12):
             raise Exception("line"+str(line_no)+":immediate out of range")
         imm_bits=toBinary(imm,12)
@@ -27,8 +36,12 @@ def encodeI(inst_name,ops,line_no):
         rd_name=ops[0].strip()
         rs1_name=ops[1].strip()
         imm_text=ops[2].strip()
-        rd=reg_bits(rd_name,line_no)
-        rs1=reg_bits(rs1_name,line_no)
+
+        if rd_name not in registers or rs1_name not in registers:
+            raise Exception("line"+str(line_no)+":invalid register")
+
+        rd=registers[rd_name]
+        rs1=registers[rs1_name]
 
         try:
             imm=int(imm_text,0)
