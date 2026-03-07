@@ -16,11 +16,11 @@ def check_num_val(num):
             if not(char.isdigit() or char.lower() in "abcdef"):
                 return False
         
-        convert_int(num)
+        return True
     
 
     for char in num:
         if not char.isdigit():
             return False
         
-    convert_int(num)
+    return True
