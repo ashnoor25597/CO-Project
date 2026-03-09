@@ -276,7 +276,34 @@ def encodeR(instruction,destreg,src1reg,src2reg):
         encode=func7+rs2+rs1+func3+rd+opcode
         return encode
     except Exception as e:
-        return f"Error in line {lineno}: {str(e)}"   
+        return f"Error in line {lineno}: {str(e)}"  
+
+#encode"U"
+def encodeU(instname,ops,lineno):
+    info=instructions[instname]
+
+    if len(ops)!=2:
+        raise Exception("line"+str(lineno)+":wrong operand count")
+
+    rdname=ops[0].strip()
+    immtext=ops[1].strip()
+
+    if rdname not in registers:
+        raise Exception("line"+str(lineno)+":invalid register")
+
+    rd=registers[rdname]
+
+    try:
+        imm=int(immtext,0)
+    except:
+        raise Exception("line"+str(lineno)+":invalid immediate")
+
+    if not checkrange(imm,20):
+        raise Exception("line"+str(lineno)+":immediate out of range")
+
+    immbits=toBinary(imm,20)
+
+    return immbits+rd+info["opcode"] 
     
 
 
@@ -331,3 +358,4 @@ def encodeS(instruction):
     
     except ValueError:
         return f"Error in line {lineno}: Invalid instruction format"
+    
