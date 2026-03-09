@@ -276,67 +276,58 @@ def encodeR(instruction,destreg,src1reg,src2reg):
         encode=func7+rs2+rs1+func3+rd+opcode
         return encode
     except Exception as e:
-        return f"Error in line {lineno}: {str(e)}"
-#encode"U"
-def encodeU(instname,ops,lineno):
-    info=instructions[instname]
+        return f"Error in line {lineno}: {str(e)}"   
+    
 
-    if len(ops)!=2:
-        raise Exception("line"+str(lineno)+":wrong operand count")
 
-    rdname=ops[0].strip()
-    immtext=ops[1].strip()
-
-    if rdname not in registers:
-        raise Exception("line"+str(lineno)+":invalid register")
-
-    rd=registers[rdname]
+def encodeS(instruction):
 
     try:
-        imm=int(immtext,0)
-    except:
-        raise Exception("line"+str(lineno)+":invalid immediate")
 
-    if not checkrange(imm,20):
-        raise Exception("line"+str(lineno)+":immediate out of range")
-
-    immbits=toBinary(imm,20)
-
-    return immbits+rd+info["opcode"]
-
-def encodeJ(instr):
-    try:
-
-        op,rest=instr.split(" ",1)
+        op,rest=instruction.split(" ",1)
 
         if op not in instructions:
-            return f"Error in line {lineno}: Invalid instruction"
+            return f"Error in line {lineno}: invalid instruction"
+        
+        if "func3" not in instructions[op]:
+            return f"Error in line {lineno}: Invalid S-type instruction"
+        
+        parts=rest.split(",")
+        if len(parts)!=2:
+            return f"Error in line {lineno}: Invalid instruction format"
+        
+        rs2,address=parts
+        rs2=rs2.strip()
+        address=address.strip()
 
-        rd,imm=rest.split(",")
+        if rs2 not in registers:
+            return f"Error in line {lineno}: Invalid rs2 register"
+        
+        if "(" not in address or ")" not in address:
+            return f"Error in line {lineno}: Invalid memory format"
 
-        rd=rd.strip()
-        imm=imm.strip()
+        imm=address.split("(")[0].strip()
 
-        if rd not in registers:
-            return f"Error in line {lineno}: Invalid register"
+        rs1=address.split("(")[1].replace(")","").strip()
+        if rs1 not in registers:
+            return f"Error in line {lineno}: Invalid rs1 register"
 
-        rdbinary=registers[rd]
+        rs1binary=registers[rs1]
+        rs2binary=registers[rs2]
 
         if not checknumval(imm):
             return f"Error in line {lineno}: Invalid immediate value"
 
         immint=convertint(imm)
 
-        if not checkrange(immint,21):
+        if not checkrange(immint,12):
             return f"Error in line {lineno}: Immediate out of range"
-        immbin=toBinary(immint,21)
 
-        imm20=immbin[0]
-        imm101=immbin[10:20]
-        imm11=immbin[9]
-        imm1912=immbin[1:9]
+        immbin=toBinary(immint,12)
+        upperpart=immbin[:7]
+        lowerpart=immbin[7:]
 
-        return imm20+imm101+imm11+imm1912+rdbinary+instructions[op]["opcode"]
+        return upperpart+rs2binary+rs1binary+instructions[op]["func3"]+lowerpart+instructions[op]["opcode"]
     
     except ValueError:
         return f"Error in line {lineno}: Invalid instruction format"
