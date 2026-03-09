@@ -56,6 +56,7 @@ instructions={
 
 symbol_table={}
 pc=0
+line_no=0
 
 def toBinary(value,bits):
     num=int(value)
@@ -128,7 +129,7 @@ def check_label(my_label):
 def pass1(assembly_code):
     symbol_table={}
     pc=0
-    for line in assembly_code:
+    for i, line in enumerate(assembly_code,1):
         line=line.strip()
         if not line or line.startswith('#'):
             continue
@@ -136,10 +137,10 @@ def pass1(assembly_code):
             label=line.split(':',1)[0].strip()
             check=check_label(label)
             if check!=True:
-                print("Error: ", check)
+                print(f"Error in line {i}: {check}")
                 return{}
             if label in symbol_table:
-                print("Error: Duplicate label", label)
+                print(f"Error in line {i}: Duplicate label {label}")
                 return {}
             symbol_table[label]=pc
             parts=line.split(':',1)[1].strip()
@@ -150,9 +151,9 @@ def pass1(assembly_code):
     return symbol_table
 
 def check_virtual_halt(assembly_code):
-    real_instructions=[]
 
     for line in assembly_code:
+
         line=line.strip()
 
         if line=="" or line.startswith("#"):
@@ -160,64 +161,47 @@ def check_virtual_halt(assembly_code):
 
         if ":" in line:
             line=line.split(":",1)[1].strip()
-            
-            
+
         if line=="":
             continue
 
-        line= line.replace(","," ")
+        line=line.replace(","," ")
         parts=line.split()
 
-        real_instructions.append(parts)
-    
+        if len(parts)>=4 and parts[0]=="beq" and parts[1]=="zero" and parts[2]=="zero" and parts[3]=="0":
+            return True
 
-    if len(real_instructions)==0:
-        return "Error: Missing virtual halt"
+    return "Error: Missing virtual halt"
+def encodeB(instruction, rs1_name, rs2_name, branch_offset):
 
-    halt_found=False
+    info = instructions[instruction]
 
-    for i in range(len(real_instructions)):
-        instr= real_instructions[i]
+    opcode = int(info["opcode"],2)
+    funct3 = int(info["func3"],2)
 
-        if len(instr)==4 and instr[0]=="beq" and instr[1]=="zero" and instr[2]=="zero" and instr[3]=="0":
-            halt_found=True
-        
-            
-            if i!=len(real_instructions)-1:
-                return "Error: Halt not last instruction"
+    rs1 = int(registers[rs1_name],2)
+    rs2 = int(registers[rs2_name],2)
 
-    if not halt_found:
-        return "Error: Missing virtual halt"
-    return True
+    imm = branch_offset
 
+    imm12 = (imm >> 12) & 1
+    imm11 = (imm >> 11) & 1
+    imm10_5 = (imm >> 5) & 0x3F
+    imm4_1 = (imm >> 1) & 0xF
 
-def encodeB(instruction,reg1,reg2,branch_offset):
-    try:
-        if instruction not in instructions:
-            raise ValueError("Invalid instruction")
-        instr_info=instructions[instruction]
-        if instr_info["type"]!="B":
-            raise ValueError("Instruction is not B-type")
-        if reg1 not in registers or reg2 not in registers:
-            raise ValueError("Invalid register name")
-        opcode=instr_info["opcode"]
-        func3=instr_info["func3"]
-        rs1=registers[reg1]
-        rs2=registers[reg2]
-        branch_offset= branch_offset >>1
-        imm=format(branch_offset & 0xFFF,'013b')
-        imm12=imm[0]
-        imm10_5=imm[1:7]
-        imm4_1=imm[7:11]
-        imm11=imm[11]
-        encode=imm12+imm10_5+rs2+rs1+func3+imm4_1+imm11+opcode
-        return encode
-    except Exception as e:
-        return "Error in encodeB:" +str(e)
-        
+    inst = (
+        (imm12 << 31) |
+        (imm10_5 << 25) |
+        (rs2 << 20) |
+        (rs1 << 15) |
+        (funct3 << 12) |
+        (imm4_1 << 8) |
+        (imm11 << 7) |
+        opcode
+    )
 
-
-
+    return format(inst, "032b")
+   
 #encode"I"
 def encodeI(inst_name,ops,line_no):
     info=instructions[inst_name]
@@ -292,7 +276,7 @@ def encodeR(instruction,dest_reg,src1_reg,src2_reg):
         encode=func7+rs2+rs1+func3+rd+opcode
         return encode
     except Exception as e:
-        return"Error in encodeR:" +str(e)
+        return f"Error in line {line_no}: {str(e)}"
         
 
 
@@ -316,10 +300,10 @@ def encodeU(inst_name,ops,line_no):
     except:
         raise Exception("line"+str(line_no)+":invalid immediate")
 
-    if imm<0 or imm>= (1<<20):
+    if not check_range(imm,20):
         raise Exception("line"+str(line_no)+":immediate out of range")
 
-    imm_bits=toBinary(imm,20)[:20]
+    imm_bits = toBinary(imm,20)
 
     return imm_bits+rd+info["opcode"]
 
@@ -329,7 +313,7 @@ def encodeJ(instr):
         op, rest= instr.split(" ", 1)
 
         if op not in instructions:
-            return "Error: Invalid instruction"
+            return f"Error in line {line_no}: Invalid instruction"
 
         rd,imm= rest.split(",")
 
@@ -337,28 +321,28 @@ def encodeJ(instr):
         imm=imm.strip()
 
         if rd not in registers:
-            return "Error: Invalid register"
+            return f"Error in line {line_no}: Invalid register"
 
         rd_binary=registers[rd]
 
         if not check_num_val(imm):
-            return "Error: Invalid immediate value"
+            return f"Error in line {line_no}: Invalid immediate value"
 
         imm_int=convert_int(imm)
 
         if not check_range(imm_int,21):
-            return "Error: Immediate out of range"
+            return f"Error in line {line_no}: Immediate out of range"
         imm_bin= toBinary(imm_int,21)
 
-        imm_20=imm_bin[0]
-        imm10_1=imm_bin[10:20]
-        imm11=imm_bin[9]
-        imm19_12=imm_bin[1:9]
+        imm_20 = imm_bin[0]
+        imm10_1 = imm_bin[10:20]
+        imm11 = imm_bin[9]
+        imm19_12 = imm_bin[1:9]
 
         return imm_20 + imm10_1 + imm11 +imm19_12 +rd_binary + instructions[op]["opcode"]
     
     except ValueError:
-        return "Error: Invalid instruction format"
+        return f"Error in line {line_no}: Invalid instruction format"
     
 def encodeS(instruction):
 
@@ -367,24 +351,24 @@ def encodeS(instruction):
         op, rest= instruction.split(" ", 1)
 
         if op not in instructions:
-            return "Error: invalid instruction"
+            return f"Error in line {line_no}: invalid instruction"
         
         if "func3" not in instructions[op]:
-            return "Error: Invalid S-type instruction"
+            return f"Error in line {line_no}: Invalid S-type instruction"
         
         parts= rest.split(",")
         if len(parts)!=2:
-            return "Error: Invalid instruction format"
+            return f"Error in line {line_no}: Invalid instruction format"
         
         rs2, address=parts
         rs2=rs2.strip()
         address=address.strip()
 
         if rs2 not in registers:
-            return "Error: Invalid rs2 register"
+            return f"Error in line {line_no}: Invalid rs2 register"
         
         if "(" not in address or ")" not in address:
-            return "Error: Invalid memory format"
+            return f"Error in line {line_no}: Invalid memory format"
 
         
 
@@ -392,19 +376,19 @@ def encodeS(instruction):
 
         rs1= address.split("(")[1].replace(")", "").strip()
         if rs1 not in registers:
-            return "Error: Invalid rs1 register"
+            return f"Error in line {line_no}: Invalid rs1 register"
 
 
         rs1_binary= registers[rs1]
         rs2_binary= registers[rs2]
 
         if not check_num_val(imm):
-            return "Error: Invalid immediate value"
+            return f"Error in line {line_no}: Invalid immediate value"
 
         imm_int=convert_int(imm)
 
         if not check_range(imm_int,12):
-            return "Error: Immediate out of range"
+            return f"Error in line {line_no}: Immediate out of range"
 
         imm_bin= toBinary(imm_int,12)
         upper=imm_bin[:7]
@@ -413,18 +397,24 @@ def encodeS(instruction):
         return upper + rs2_binary + rs1_binary +instructions[op]["func3"] +lower + instructions[op]["opcode"]
     
     except ValueError:
-        return "Error: Invalid instruction format"
+        return f"Error in line {line_no}: Invalid instruction format"
 
-def parse_instr(line):
+def parse_instr(line,line_no):
     global pc, symbol_table
     line=line.strip()
     parts=line.split()
 
-    if " " in line:
-        op, rest=line.split(" ", 1)
+    line = line.replace("\t"," ").strip()
+
+    parts = line.split(maxsplit=1)
+
+    op = parts[0].strip()
+
+    if len(parts) > 1:
+        rest = parts[1]
     else:
-        op=line
-        rest=""
+        rest = ""
+
     
 
 
@@ -432,8 +422,13 @@ def parse_instr(line):
         inst_type=instructions[op]["type"]
 
         if inst_type=="R":
+            parts=rest.split(",")
 
-            rd ,rs1, rs2= rest.split(",")
+            if len(parts)!=3:
+                return f"Error in line {line_no}: Invalid operand count"
+            
+
+            rd ,rs1, rs2= parts
             rd= rd.strip()
             rs1=rs1.strip()
             rs2=rs2.strip()
@@ -442,31 +437,42 @@ def parse_instr(line):
         elif inst_type=="I":
             
 
-            ops=rest.split(",")
-            binary=encodeI(op,ops,0)
+            try:
+                ops = rest.split(",")
+                binary = encodeI(op, ops, line_no)
+            except Exception as e:
+              return f"Error in line {line_no}: {str(e)}"
 
         elif inst_type=="S":
             binary=encodeS(line)
         
         elif inst_type=="B":
+            parts=rest.split(",")
+
+            if len(parts)!=3:
+                return f"Error in line {line_no}: Invalid operand count"
             
 
-            rs1, rs2, imm=rest.split(",")
-            rs1=rs1.strip()
-            rs2=rs2.strip()
-            imm=imm.strip()
+            rs1, rs2, imm=[x.strip() for x in parts]
+            if rs1 not in registers or rs2 not in registers:
+                return f"Error in line {line_no}: Invalid register"
             
             if imm in symbol_table:
-                imm=symbol_table[imm]-pc
+                target=symbol_table[imm]
+                imm=target-pc
             elif check_num_val(imm):
                 imm = convert_int(imm)
             else:
-                return "Error: Invalid label or immediate"
+                return f"Error in line {line_no}: Invalid label or immediate"
+            
+            if not check_range(imm,13):
+                return f"Error in line {line_no}: Immediate out of range"
+                
             binary=encodeB(op,rs1,rs2,imm)
 
         elif inst_type=="U":
             ops=rest.split(",")
-            binary=encodeU(op,ops,0)
+            binary=encodeU(op,ops,line_no)
             
 
         elif inst_type=="J":
@@ -478,14 +484,18 @@ def parse_instr(line):
 
             if imm in symbol_table:
                 imm=symbol_table[imm]-pc
+            
+            elif check_num_val(imm):
+                imm=convert_int(imm)
+                    
+            
+
+            else:
+                return f"Error in line {line_no}: Invalid label or immediate"
+            
             new_line=op+" "+ rd + ","+str(imm)
             binary=encodeJ(new_line)
-        
         return binary
-
-    else:
-        return "Error: Instruction not found"
-    
 def output(binary_txt):
     
     output_lines=[]
@@ -528,6 +538,7 @@ def main():
     symbol_table=pass1(assembly_code)
 
     binary_output=[]
+    global line_no
     line_no=1
 
     #PASS2
@@ -545,7 +556,15 @@ def main():
             if line=="":
                 continue
 
-        binary=parse_instr(line)
+        binary=parse_instr(line,line_no)
+
+        if isinstance(binary,str) and binary.startswith("Error"):
+            print(binary)
+            
+            if len(sys.argv) > 2:
+                open(sys.argv[2],"w").close()   # empty output file
+            
+            return
 
         binary_output.append(binary)
         pc+=4
@@ -566,4 +585,3 @@ if __name__=="__main__":
 
 
        
-
