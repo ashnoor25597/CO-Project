@@ -73,3 +73,32 @@ def checkrange(value,bits):
         return True
     else:
         return False
+    
+def checknumval(num):
+    
+    if len(num)==0:
+        return False
+    
+    if num[0]=="-":
+        num=num[1:]
+
+    if num.startswith ("0x") or num.startswith("0X"):
+        hexpart=num[2:]
+
+        if len(hexpart)==0:
+            return False
+        
+        for char in hexpart:
+            if not(char.isdigit() or char.lower() in "abcdef"):
+                return False
+        
+        return True
+    
+
+    for char in num:
+        if not char.isdigit():
+            return False
+        
+    return True
+
+def convertint(num):
