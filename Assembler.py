@@ -149,3 +149,26 @@ def pass1(assemblycode):
         else:
             pc+=4
     return symboltable
+
+def checkvirtualhalt(assemblycode):
+
+    for line in assemblycode:
+
+        line=line.strip()
+
+        if line=="" or line.startswith("#"):
+            continue
+
+        if ":" in line:
+            line=line.split(":",1)[1].strip()
+
+        if line=="":
+            continue
+
+        line=line.replace(","," ")
+        parts=line.split()
+
+        if len(parts)>=4 and parts[0]=="beq" and parts[1]=="zero" and parts[2]=="zero" and parts[3]=="0":
+            return True
+
+    return "Error: Missing virtual halt"
