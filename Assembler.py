@@ -54,6 +54,26 @@ instructions={
 "jal":{"type":"J","opcode":"1101111"}
 }
 
+symboltable={}
+pc=0
+lineno=0
+
+def toBinary(value,bits):
+    num=int(value)
+    if num<0:
+        num=(1<<bits)+num
+    binary=bin(num)[2:]
+    return binary.zfill(bits)
+
+def checkrange(value,bits):
+    minimum=-(2**(bits-1))
+    maximum=(2**(bits-1))-1
+
+    if minimum<=value<=maximum:
+        return True
+    else:
+        return False
+
 def checklabel(mylabel):
 
     if len(mylabel)==0:
