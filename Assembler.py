@@ -172,3 +172,33 @@ def checkvirtualhalt(assemblycode):
             return True
 
     return "Error: Missing virtual halt"
+
+def encodeB(instruction,rs1name,rs2name,branchoffset):
+
+    info=instructions[instruction]
+
+    opcode=int(info["opcode"],2)
+    funct3=int(info["func3"],2)
+
+    rs1=int(registers[rs1name],2)
+    rs2=int(registers[rs2name],2)
+
+    imm=branchoffset
+
+    imm12=(imm>>12)&1
+    imm11=(imm>>11)&1
+    imm105=(imm>>5)&0x3F
+    imm41=(imm>>1)&0xF
+
+    inst=(
+        (imm12<<31) |
+        (imm105<<25) |
+        (rs2<<20) |
+        (rs1<<15) |
+        (funct3<<12) |
+        (imm41<<8) |
+        (imm11<<7) |
+        opcode
+    )
+
+    return format(inst,"032b")
