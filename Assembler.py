@@ -125,3 +125,27 @@ def checklabel(mylabel):
             return "Invalid Label"
         
     return True
+
+def pass1(assemblycode):
+    symboltable={}
+    pc=0
+    for i,line in enumerate(assemblycode,1):
+        line=line.strip()
+        if not line or line.startswith('#'):
+            continue
+        if ':' in line:
+            label=line.split(':',1)[0].strip()
+            check=checklabel(label)
+            if check!=True:
+                print(f"Error in line {i}: {check}")
+                return{}
+            if label in symboltable:
+                print(f"Error in line {i}: Duplicate label {label}")
+                return {}
+            symboltable[label]=pc
+            parts=line.split(':',1)[1].strip()
+            if parts:
+                pc+=4
+        else:
+            pc+=4
+    return symboltable
