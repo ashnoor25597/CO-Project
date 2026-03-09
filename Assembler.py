@@ -303,3 +303,40 @@ def encodeU(instname,ops,lineno):
     immbits=toBinary(imm,20)
 
     return immbits+rd+info["opcode"]
+
+def encodeJ(instr):
+    try:
+
+        op,rest=instr.split(" ",1)
+
+        if op not in instructions:
+            return f"Error in line {lineno}: Invalid instruction"
+
+        rd,imm=rest.split(",")
+
+        rd=rd.strip()
+        imm=imm.strip()
+
+        if rd not in registers:
+            return f"Error in line {lineno}: Invalid register"
+
+        rdbinary=registers[rd]
+
+        if not checknumval(imm):
+            return f"Error in line {lineno}: Invalid immediate value"
+
+        immint=convertint(imm)
+
+        if not checkrange(immint,21):
+            return f"Error in line {lineno}: Immediate out of range"
+        immbin=toBinary(immint,21)
+
+        imm20=immbin[0]
+        imm101=immbin[10:20]
+        imm11=immbin[9]
+        imm1912=immbin[1:9]
+
+        return imm20+imm101+imm11+imm1912+rdbinary+instructions[op]["opcode"]
+    
+    except ValueError:
+        return f"Error in line {lineno}: Invalid instruction format"
