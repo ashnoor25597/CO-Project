@@ -489,3 +489,74 @@ def output(binarytxt):
     with open(sys.argv[2],"w") as f:
         for line in outputlines:
             f.write(line+"\n")
+
+def main():
+    global pc
+    pc=0
+    global symboltable
+
+    #reading assembly file
+    if len(sys.argv)>1:
+        assemblycode=read_file(sys.argv[1])
+    else:
+        assemblycode=read_file()
+
+    #assemblycode = [line.strip() for line in sys.stdin if line.strip() != ""]
+
+    #check virtual halt
+    haltcheck=checkvirtualhalt(assemblycode)
+
+    if haltcheck!=True:
+        print(haltcheck)
+        
+        if len(sys.argv)>2:
+            open(sys.argv[2],"w").close()
+        return
+    
+    #PASS1
+    symboltable=pass1(assemblycode)
+
+    binaryoutput=[]
+    global lineno
+    lineno=1
+
+    #PASS2
+    for line in assemblycode:
+
+        line=line.strip()
+
+        if line=="" or line.startswith("#"):
+            continue
+
+        if ":" in line:
+            parts=line.split(":",1)
+            line=parts[1].strip()
+
+            if line=="":
+                continue
+
+        binary=parseinstr(line,lineno)
+
+        if isinstance(binary,str) and binary.startswith("Error"):
+            print(binary)
+            
+            if len(sys.argv)>2:
+                open(sys.argv[2],"w").close()
+            
+            return
+
+        binaryoutput.append(binary)
+        pc+=4
+
+        lineno+=1
+
+    if len(sys.argv)>2:
+        with open(sys.argv[2],"w") as f:
+            for b in binaryoutput:
+                f.write(b+"\n")
+    else:
+        for b in binaryoutput:
+            print(b)
+
+if __name__=="__main__":
+    main()
