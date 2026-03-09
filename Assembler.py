@@ -479,4 +479,13 @@ def parseinstr(line,lineno):
             newline=op+" "+rd+","+str(imm)
             binary=encodeJ(newline)
         return binary
+
+def output(binarytxt):
     
+    outputlines=[]
+
+    outputlines.append(binarytxt)
+
+    with open(sys.argv[2],"w") as f:
+        for line in outputlines:
+            f.write(line+"\n")
