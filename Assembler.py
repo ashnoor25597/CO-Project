@@ -257,3 +257,24 @@ def encodeI(instname,ops,lineno):
             raise Exception("line"+str(lineno)+":immediate out of range")
         immbits=toBinary(imm,12)
         return immbits+rs1+info["func3"]+rd+info["opcode"]
+
+def encodeR(instruction,destreg,src1reg,src2reg):
+    try:
+        if instruction not in instructions:
+            raise ValueError("Invalid instruction")
+        instrinfo=instructions[instruction]
+        if instrinfo["type"]!="R":
+            raise ValueError("Instruction is not R-type")
+        if destreg not in registers or src1reg not in registers or src2reg not in registers:
+            raise ValueError("Invalid register name")
+        opcode=instrinfo["opcode"]
+        func3=instrinfo["func3"]
+        func7=instrinfo["func7"]
+        rd=registers[destreg]
+        rs1=registers[src1reg]
+        rs2=registers[src2reg]
+        encode=func7+rs2+rs1+func3+rd+opcode
+        return encode
+    except Exception as e:
+        return f"Error in line {lineno}: {str(e)}"
+    
