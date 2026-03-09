@@ -202,3 +202,58 @@ def encodeB(instruction,rs1name,rs2name,branchoffset):
     )
 
     return format(inst,"032b")
+
+#encode"I"
+def encodeI(instname,ops,lineno):
+    info=instructions[instname]
+    if instname=="lw":
+        if len(ops)!=2:
+            raise Exception("line"+str(lineno)+":wrong operand count")
+        rdname=ops[0].strip()
+        memop=ops[1].strip()
+
+        if rdname not in registers:
+            raise Exception("line"+str(lineno)+":invalid register")
+        rd=registers[rdname]
+
+        if "(" not in memop or ")" not in memop:
+            raise Exception("line"+str(lineno)+":invalid memory format")
+        leftpart=memop[:memop.index("(")].strip()
+        insidepart=memop[memop.index("(")+1:memop.index(")")].strip()
+
+        try:
+            imm=int(leftpart,0)
+        except:
+            raise Exception("line"+str(lineno)+":invalid immediate")
+
+        if insidepart not in registers:
+            raise Exception("line"+str(lineno)+":invalid register")
+        rs1=registers[insidepart]
+
+        if not checkrange(imm,12):
+            raise Exception("line"+str(lineno)+":immediate out of range")
+        immbits=toBinary(imm,12)
+        return immbits+rs1+info["func3"]+rd+info["opcode"]
+
+    else:
+        if len(ops)!=3:
+            raise Exception("line"+str(lineno)+":wrong operand count")
+        rdname=ops[0].strip()
+        rs1name=ops[1].strip()
+        immtext=ops[2].strip()
+
+        if rdname not in registers or rs1name not in registers:
+            raise Exception("line"+str(lineno)+":invalid register")
+
+        rd=registers[rdname]
+        rs1=registers[rs1name]
+
+        try:
+            imm=int(immtext,0)
+        except:
+            raise Exception("line"+str(lineno)+":invalid immediate")
+
+        if not checkrange(imm,12):
+            raise Exception("line"+str(lineno)+":immediate out of range")
+        immbits=toBinary(imm,12)
+        return immbits+rs1+info["func3"]+rd+info["opcode"]
