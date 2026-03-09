@@ -396,3 +396,87 @@ def encodeS(instruction):
     except ValueError:
         return f"Error in line {lineno}: Invalid instruction format"
     
+def parseinstr(line,lineno):
+    global pc,symboltable
+    line=line.strip()
+    parts=line.split()
+
+    line=line.replace("\t"," ").strip()
+
+    parts=line.split(maxsplit=1)
+
+    op=parts[0].strip()
+
+    if len(parts)>1:
+        rest=parts[1]
+    else:
+        rest=""
+
+    if op in instructions:
+        insttype=instructions[op]["type"]
+
+        if insttype=="R":
+            parts=rest.split(",")
+
+            if len(parts)!=3:
+                return f"Error in line {lineno}: Invalid operand count"
+            
+            rd,rs1,rs2=parts
+            rd=rd.strip()
+            rs1=rs1.strip()
+            rs2=rs2.strip()
+            binary=encodeR(op,rd,rs1,rs2)
+
+        elif insttype=="I":
+            try:
+                ops=rest.split(",")
+                binary=encodeI(op,ops,lineno)
+            except Exception as e:
+                return f"Error in line {lineno}: {str(e)}"
+
+        elif insttype=="S":
+            binary=encodeS(line)
+        
+        elif insttype=="B":
+            parts=rest.split(",")
+
+            if len(parts)!=3:
+                return f"Error in line {lineno}: Invalid operand count"
+            
+            rs1,rs2,imm=[x.strip() for x in parts]
+            if rs1 not in registers or rs2 not in registers:
+                return f"Error in line {lineno}: Invalid register"
+            
+            if imm in symboltable:
+                target=symboltable[imm]
+                imm=target-pc
+            elif checknumval(imm):
+                imm=convertint(imm)
+            else:
+                return f"Error in line {lineno}: Invalid label or immediate"
+            
+            if not checkrange(imm,13):
+                return f"Error in line {lineno}: Immediate out of range"
+                
+            binary=encodeB(op,rs1,rs2,imm)
+
+        elif insttype=="U":
+            ops=rest.split(",")
+            binary=encodeU(op,ops,lineno)
+
+        elif insttype=="J":
+            rd,imm=rest.split(",")
+            rd=rd.strip()
+            imm=imm.strip()
+
+            if imm in symboltable:
+                imm=symboltable[imm]-pc
+            elif checknumval(imm):
+                imm=convertint(imm)
+            else:
+                return f"Error in line {lineno}: Invalid label or immediate"
+            
+            newline=op+" "+rd+","+str(imm)
+            binary=encodeJ(newline)
+        return binary
+    
