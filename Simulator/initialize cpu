@@ -1,0 +1,10 @@
+def initialize_system():
+    regs = [0] * 32
+    pc = 0
+
+    # Memory (32 locations, 32-bit each)
+    memory = [0] * 32
+
+    regs[0] = 0
+
+    return regs, pc, memory
